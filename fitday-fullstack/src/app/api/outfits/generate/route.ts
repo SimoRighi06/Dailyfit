@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 const inputSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   occasion: z.string().trim().max(50).optional(),
+  language: z.enum(["it", "de", "en"]).default("it"),
 });
 
 export async function POST(request: Request) {
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     .eq("laundry_status", "clean");
   if (garmentsError) return jsonError(garmentsError.message, 500);
 
-  const aiResult = await generateAiOutfit(garments ?? [], parsed.data.occasion);
+  const aiResult = await generateAiOutfit(garments ?? [], parsed.data.occasion, parsed.data.language);
   const result = aiResult ?? buildDailyOutfit(garments ?? [], Number(outfitDate.replaceAll("-", "")));
   if (result.items.length === 0) {
     return NextResponse.json({ error: "Non hai ancora abbastanza capi puliti per creare un outfit.", missing: result.missing }, { status: 409 });

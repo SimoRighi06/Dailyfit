@@ -17,6 +17,7 @@ FITDAY is a digital wardrobe and daily outfit planner. This repository is the fu
 ## What is included
 
 - Light/minimal responsive application shell.
+- User interface in Italian by default, with German and English selectable and persisted in the browser.
 - Dashboard with wardrobe counters and today's outfit area.
 - Wardrobe: create garments, upload private photos, search/filter, update laundry state and delete.
 - Garment metadata: category, brand, colour, optional HEX swatch, fit, laundry status, image path and notes.

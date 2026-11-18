@@ -1,55 +1,87 @@
+// src/app/api/garments/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isMissingSupabaseConfig, jsonError } from "@/lib/http";
-import { createGarmentSchema } from "@/lib/validation/garment";
-
-export const runtime = "nodejs";
-
-async function getUser(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data, error } = await supabase.auth.getClaims();
-  if (error || !data?.claims?.sub) return null;
-  return data.claims.sub;
-}
 
 export async function GET() {
-  if (isMissingSupabaseConfig()) return jsonError("Supabase non è configurato.", 503);
-  const supabase = await createClient();
-  const userId = await getUser(supabase);
-  if (!userId) return jsonError("Devi accedere per vedere il guardaroba.", 401);
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
-    .from("garments")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    console.log("🔎 [GET /api/garments] utente:", user?.id ?? "NESSUNO", "| authError:", authError?.message ?? "nessuno");
 
-  if (error) return jsonError(error.message, 500);
-  const garments = await Promise.all((data ?? []).map(async (garment) => {
-    if (!garment.image_path) return { ...garment, image_url: null };
-    const { data: signed } = await supabase.storage.from("wardrobe").createSignedUrl(garment.image_path, 60 * 30);
-    return { ...garment, image_url: signed?.signedUrl ?? null };
-  }));
+    if (authError || !user) {
+      return NextResponse.json({ error: "Non autorizzato. Fai il login." }, { status: 401 });
+    }
 
-  return NextResponse.json({ garments });
+    const { data, error } = await supabase
+      .from("garments")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ [GET /api/garments] errore database:", error.message, "| codice:", error.code);
+      return NextResponse.json({ error: `Database: ${error.message}` }, { status: 500 });
+    }
+
+    console.log("✅ [GET /api/garments] trovati", data?.length ?? 0, "capi");
+    return NextResponse.json({ garments: data ?? [] });
+  } catch (e) {
+    console.error("💥 [GET /api/garments] errore fatale:", e);
+    return NextResponse.json({ error: "Errore interno del server. Controlla il terminale." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
-  if (isMissingSupabaseConfig()) return jsonError("Supabase non è configurato.", 503);
-  const supabase = await createClient();
-  const userId = await getUser(supabase);
-  if (!userId) return jsonError("Devi accedere per aggiungere un capo.", 401);
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  let body: unknown;
-  try { body = await request.json(); } catch { return jsonError("JSON non valido."); }
-  const parsed = createGarmentSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Controlla i campi del capo.", details: parsed.error.flatten() }, { status: 422 });
+    console.log("🔎 [POST /api/garments] utente:", user?.id ?? "NESSUNO", "| authError:", authError?.message ?? "nessuno");
 
-  const { data, error } = await supabase
-    .from("garments")
-    .insert({ ...parsed.data, user_id: userId })
-    .select("*")
-    .single();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Non autorizzato. Fai il login." }, { status: 401 });
+    }
 
-  if (error) return jsonError(error.message, 500);
-  return NextResponse.json({ garment: data }, { status: 201 });
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      console.error("❌ [POST /api/garments] il body della richiesta non è JSON valido");
+      return NextResponse.json({ error: "Body della richiesta non valido." }, { status: 400 });
+    }
+
+    console.log("📦 [POST /api/garments] body ricevuto:", JSON.stringify(body));
+
+    if (!body.name || !body.category || !body.color) {
+      return NextResponse.json({ error: "Nome, categoria e colore sono obbligatori." }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from("garments")
+      .insert({
+        user_id: user.id,
+        name: body.name,
+        category: body.category,
+        brand: body.brand ?? null,
+        color: body.color,
+        color_hex: body.color_hex ?? null,
+        fit: body.fit ?? "regular",
+        laundry_status: body.laundry_status ?? "clean",
+        notes: body.notes ?? null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ [POST /api/garments] errore database:", error.message, "| codice:", error.code, "| dettagli:", error.details);
+      return NextResponse.json({ error: `Database: ${error.message}` }, { status: 500 });
+    }
+
+    console.log("✅ [POST /api/garments] capo creato con id:", data.id);
+    return NextResponse.json({ garment: data });
+  } catch (e) {
+    console.error("💥 [POST /api/garments] errore fatale:", e);
+    return NextResponse.json({ error: "Errore interno del server. Controlla il terminale." }, { status: 500 });
+  }
 }

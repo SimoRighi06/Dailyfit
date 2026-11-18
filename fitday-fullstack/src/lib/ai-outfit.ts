@@ -13,7 +13,7 @@ const aiOutfitSchema = z.object({
  * supplied by the server. We validate its choices again before persistence.
  * Returns null when AI is not configured or the result violates constraints.
  */
-export async function generateAiOutfit(garments: Garment[], occasion?: string) {
+export async function generateAiOutfit(garments: Garment[], occasion?: string, language: "it" | "de" | "en" = "it") {
   if (!process.env.AI_GATEWAY_API_KEY || !process.env.AI_MODEL) return null;
   if (garments.length < 3) return null;
 
@@ -31,7 +31,7 @@ export async function generateAiOutfit(garments: Garment[], occasion?: string) {
         "Choose exactly one top (tshirt, hoodie, or crewneck), one bottom (jeans or trousers), one pair of shoes, and socks when available. You may omit socks only if none are supplied.",
         "Do not invent brands, colours, garments, IDs, weather, or context.",
         `Occasion: ${occasion || "everyday casual"}.`,
-        "Return concise, useful styling reasoning.",
+        `Return concise, useful styling reasoning in ${language === "it" ? "Italian" : language === "de" ? "German" : "English"}.`,
         `Inventory JSON: ${JSON.stringify(inventory)}`,
       ].join("\n"),
     });
