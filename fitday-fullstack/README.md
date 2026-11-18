@@ -141,3 +141,5 @@ All routes execute on the Node.js runtime, verify Supabase JWT claims and rely o
 - The SQL migration scopes user data using `auth.uid()` policies.
 - Do not store body photos or measurements until consent, retention and deletion flows are implemented.
 - Before production launch, add rate limits, audit logging, upload content scanning, error monitoring, backups and automated tests.
+
+Supabase psw: S.Righi10!Fitday$
