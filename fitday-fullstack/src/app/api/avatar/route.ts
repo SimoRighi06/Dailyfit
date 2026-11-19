@@ -22,7 +22,7 @@ export async function GET() {
   const userId = auth?.claims?.sub;
   if (!userId) return jsonError("Non autorizzato.", 401);
   const { data, error } = await supabase.from("avatar_profiles").select("*").eq("user_id", userId).maybeSingle();
-  if (error) return jsonError(error.message, 500);
+  if (error) return jsonError(error.message, 500); 
   return NextResponse.json({ avatar: data });
 }
 
