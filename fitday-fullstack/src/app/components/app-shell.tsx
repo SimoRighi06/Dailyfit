@@ -3,16 +3,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { CalendarDays, LayoutGrid, Shirt, UserRound, LogIn, LogOut } from "lucide-react";
-/* import type { User } from "@supabase/supabase-js"; */
 import type { AuthChangeEvent, AuthError, Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-
-const NAV = [
-  { href: "/", label: "Today", icon: LayoutGrid },
-  { href: "/wardrobe", label: "Wardrobe", icon: Shirt },
-  { href: "/outfits", label: "Outfits", icon: CalendarDays },
-  { href: "/avatar", label: "My avatar", icon: UserRound },
-];
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 
 const TICKER = ["FITDAY", "WEAR YOUR STORY", "STREET READY", "NO OUTFIT NO PARTY", "DROP YOUR LOOK", "STAY VOLT"];
 
@@ -21,12 +14,14 @@ export function AppShell({ title, eyebrow, action, children }: {
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
+
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const loop = [...TICKER, ...TICKER, ...TICKER, ...TICKER];
 
-    useEffect(() => {
+  useEffect(() => {
     let supabase: SupabaseClient;
     try { supabase = createClient() as SupabaseClient; }
     catch (e) { console.error("💥 [shell] client supabase:", e); setAuthReady(true); return; }
@@ -49,7 +44,8 @@ export function AppShell({ title, eyebrow, action, children }: {
   async function logout() {
     setBusy(true);
     try {
-      const { error } = await createClient().auth.signOut();
+      const supabase = createClient() as SupabaseClient;
+      const { error } = await supabase.auth.signOut();
       if (error) throw error;
       console.log("🔐 [shell] logout ok");
       router.push("/login");
@@ -64,15 +60,22 @@ export function AppShell({ title, eyebrow, action, children }: {
   const authButton = !authReady
     ? <span className="btn btn-quiet" style={{ opacity: .5 }}>…</span>
     : user
-      ? <button className="btn btn-quiet" onClick={logout} disabled={busy}><LogOut size={13} /> {busy ? "ESCO…" : "ESCI"}</button>
+      ? <button className="btn btn-quiet" onClick={logout} disabled={busy}><LogOut size={13} /> {busy ? "…" : "ESCI"}</button>
       : <Link className="btn btn-primary" href="/login"><LogIn size={13} /> SIGN IN</Link>;
+
+  const NAV = [
+    { href: "/", label: t("nav.today"), icon: LayoutGrid },
+    { href: "/wardrobe", label: t("nav.wardrobe"), icon: Shirt },
+    { href: "/outfits", label: t("nav.outfits"), icon: CalendarDays },
+    { href: "/avatar", label: t("nav.avatar"), icon: UserRound },
+  ];
 
   return (
     <div className="shell">
       <aside className="sidebar">
         <Link href="/" className="brand"><span className="brand-mark">F</span> FITDAY</Link>
         <nav className="nav">
-          <span className="nav-title">Workspace</span>
+          <span className="nav-title">{t("nav.workspace")}</span>
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className={`nav-link ${pathname === href ? "active" : ""}`}>
               <Icon size={15} /> {label}
@@ -93,9 +96,9 @@ export function AppShell({ title, eyebrow, action, children }: {
         )}
 
         <div className="sidebar-foot">
-          <div>Your wardrobe,</div>
-          <div>reimagined.</div>
-          <div className="foot-tag">A little more style, every day.</div>
+          <div>{t("nav.tagline1")}</div>
+          <div>{t("nav.tagline2")}</div>
+          <div className="foot-tag">{t("nav.tagline3")}</div>
         </div>
       </aside>
 
@@ -115,6 +118,7 @@ export function AppShell({ title, eyebrow, action, children }: {
               <h1 className="page-title">{title}</h1>
             </div>
             <div className="head-actions">
+              <LanguageSwitcher />
               {action}
               {authButton}
             </div>
@@ -134,6 +138,6 @@ export function SectionHeader({ title, note, action }: { title: string; note?: s
         {note && <div className="section-note">{note}</div>}
       </div>
       {action}
-    </div>  
+    </div>
   );
 }

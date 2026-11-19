@@ -1923,3 +1923,9 @@ input[type="color"] {
   transform: translateY(-2px);
   box-shadow: 0 3px 10px rgba(0, 0, 0, .06);
 }
+
+/* Shimmer per skeleton loading */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
