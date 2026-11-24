@@ -305,9 +305,9 @@ export function LanguageSwitcher() {
         const next = event.target.value;
         if (isLanguage(next)) setLanguage(next);
       }}>
-        <option value="it">IT · Italiano</option>
-        <option value="de">DE · Deutsch</option>
-        <option value="en">EN · English</option>
+        <option value="it">IT</option>
+        <option value="de">DE</option>
+        <option value="en">EN</option>
       </select>
     </label>
   );

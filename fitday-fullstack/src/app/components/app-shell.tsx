@@ -9,8 +9,8 @@ import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 
 const TICKER = ["FITDAY", "WEAR YOUR STORY", "STREET READY", "NO OUTFIT NO PARTY", "DROP YOUR LOOK", "STAY VOLT"];
 
-export function AppShell({ title, eyebrow, action, children }: {
-  title: string; eyebrow?: string; action?: ReactNode; children: ReactNode;
+export function AppShell({ title, eyebrow, action, children, variant = "default" }: {
+  title: string; eyebrow?: string; action?: ReactNode; children: ReactNode; variant?: "default" | "home";
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -22,10 +22,14 @@ export function AppShell({ title, eyebrow, action, children }: {
   const loop = [...TICKER, ...TICKER, ...TICKER, ...TICKER];
 
   useEffect(() => {
+    let alive = true;
     let supabase: SupabaseClient;
     try { supabase = createClient() as SupabaseClient; }
-    catch (e) { console.error("💥 [shell] client supabase:", e); setAuthReady(true); return; }
-    let alive = true;
+    catch (e) {
+      console.error("💥 [shell] client supabase:", e);
+      queueMicrotask(() => { if (alive) setAuthReady(true); });
+      return () => { alive = false; };
+    }
     void supabase.auth.getUser().then((res: { data: { user: User | null }; error: AuthError | null }) => {
       if (!alive) return;
       if (res.error) console.warn("⚠️ [shell] getUser:", res.error.message);
@@ -71,7 +75,7 @@ export function AppShell({ title, eyebrow, action, children }: {
   ];
 
   return (
-    <div className="shell">
+    <div className={`shell ${variant === "home" ? "shell-home" : ""}`}>
       <aside className="sidebar">
         <Link href="/" className="brand"><span className="brand-mark">F</span> FITDAY</Link>
         <nav className="nav">
@@ -111,16 +115,17 @@ export function AppShell({ title, eyebrow, action, children }: {
           </div>
         </div>
 
-        <main className="main">
-          <header className="page-head">
-            <div>
-              {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-              <h1 className="page-title">{title}</h1>
-            </div>
+        <main className={`main ${variant === "home" ? "main-home" : ""}`}>
+          <header className={`page-head ${variant === "home" ? "page-head-home" : ""}`}>
+           
             <div className="head-actions">
               <LanguageSwitcher />
               {action}
-              {authButton}
+              {authButton}  
+            </div>
+             <div>
+              {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+              <h1 className="page-title">{title}</h1>
             </div>
           </header>
           {children}
